@@ -17,6 +17,7 @@ import com.conceptandcoding.LowLevelDesign.MembershipProgram.strategy.*;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.*;
 
 public class Main {
     public static void main(String[] args) {
@@ -63,39 +64,136 @@ public class Main {
         // Controller (simulated API layer)
         MembershipController controller = new MembershipController(planService, subscriptionService);
 
-        // Demo: list plans
+        // Show available plans once
         System.out.println("Available Plans:");
         for (MembershipPlan plan : controller.getPlans()) {
             System.out.println("- " + plan.getPlanType() + " | Price: " + plan.getPrice());
         }
 
-        // Demo: subscribe userA to MONTHLY SILVER
-        Subscription subA = controller.subscribe(userA, PlanType.MONTHLY, MembershipTier.SILVER);
-        System.out.println("Subscribed userA: " + subA.getPlanType() + " - " + subA.getTier());
+        // Add third userC
+        String userC = "userC";
+        userMonthlyOrderCount.put(userC, 1);
+        userMonthlySpend.put(userC, new BigDecimal("500"));
+        userToCohorts.put(userC, new HashSet<>());
 
-        // Demo: userA upgrade to GOLD (should qualify via orders/spend/cohort)
-        controller.upgradeTier(userA, MembershipTier.GOLD).ifPresent(s ->
-                System.out.println("userA tier after upgrade attempt: " + s.getTier())
+        // Simulate concurrent flows for A, B, C
+        ExecutorService exec = Executors.newFixedThreadPool(3);
+
+        // UserA: Manual upgrade to GOLD after checkout
+        Runnable flowA = () -> simulateUserFlow(
+                controller,
+                benefitService,
+                planService,
+                userA,
+                PlanType.MONTHLY,
+                MembershipTier.SILVER,
+                new BigDecimal("1200"),
+                userMonthlyOrderCount,
+                userMonthlySpend
         );
 
-        // Demo: subscribe userB to YEARLY GOLD
-        Subscription subB = controller.subscribe(userB, PlanType.YEARLY, MembershipTier.GOLD);
-        System.out.println("Subscribed userB: " + subB.getPlanType() + " - " + subB.getTier());
-
-        // Demo: userB upgrade to PLATINUM (VIP cohort qualifies)
-        controller.upgradeTier(userB, MembershipTier.PLATINUM).ifPresent(s ->
-                System.out.println("userB tier after upgrade attempt: " + s.getTier())
+        // UserB: Auto-upgrade to highest qualifying tier (could jump to PLATINUM directly)
+        Runnable flowB = () -> simulateUserFlow(
+                controller,
+                benefitService,
+                planService,
+                userB,
+                PlanType.YEARLY,
+                MembershipTier.GOLD,
+                new BigDecimal("450"),
+                userMonthlyOrderCount,
+                userMonthlySpend
         );
 
-        // Effective benefits examples
-        TierBenefits tb = benefitService.effectiveBenefits(planService.getPlan(PlanType.YEARLY), MembershipTier.PLATINUM);
-        System.out.println("Effective Benefits userB PLATINUM on YEARLY: discounts rules count = " + tb.getDiscountRules().size() +
-                ", min order for free delivery = " + tb.getFreeDeliveryRule().getMinOrderAmount());
+        // UserC: Auto-upgrade after checkout (might qualify for GOLD or stay SILVER)
+        Runnable flowC = () -> simulateUserFlow(
+                controller,
+                benefitService,
+                planService,
+                userC,
+                PlanType.QUARTERLY,
+                MembershipTier.SILVER,
+                new BigDecimal("800"),
+                userMonthlyOrderCount,
+                userMonthlySpend
+        );
 
-        // Cancel userA
-        controller.cancel(userA).ifPresent(s -> System.out.println("userA status after cancel: " + s.getStatus()));
+        List<Future<?>> futures = new ArrayList<>();
+        futures.add(exec.submit(flowA));
+        futures.add(exec.submit(flowB));
+        futures.add(exec.submit(flowC));
+
+        for (Future<?> f : futures) {
+            try {
+                f.get();
+            } catch (Exception ignored) {
+            }
+        }
+
+        exec.shutdown();
+
+        // Cleanup example: cancel userA
+        controller.cancel(userA).ifPresent(s -> System.out.println("[" + userA + "] status after cancel: " + s.getStatus()));
 
         // Note: expiryScheduler is left running for demo; call stop() on shutdown in real app
+    }
+
+    private static void simulateUserFlow(
+            MembershipController controller,
+            BenefitService benefitService,
+            PlanService planService,
+            String userId,
+            PlanType planType,
+            MembershipTier tier,
+            BigDecimal cartTotal,
+            Map<String, Integer> userMonthlyOrderCount,
+            Map<String, BigDecimal> userMonthlySpend
+    ) {
+        // Subscribe
+        Subscription subscription = controller.subscribe(userId, planType, tier);
+        System.out.println("[" + userId + "] subscribed: " + subscription.getPlanType() + " - " + subscription.getTier());
+
+        // Effective benefits for current tier
+        TierBenefits benefits = benefitService.effectiveBenefits(planService.getPlan(planType), subscription.getTier());
+        if (benefits != null) {
+            BigDecimal minFreeDelivery = benefits.getFreeDeliveryRule() != null ? benefits.getFreeDeliveryRule().getMinOrderAmount() : BigDecimal.valueOf(Long.MAX_VALUE);
+            boolean freeDelivery = cartTotal.compareTo(minFreeDelivery) >= 0;
+
+            BigDecimal percentTotal = BigDecimal.ZERO;
+            BigDecimal flatTotal = BigDecimal.ZERO;
+            for (var rule : benefits.getDiscountRules()) {
+                switch (rule.getType()) {
+                    case PERCENT:
+                        percentTotal = percentTotal.add(rule.getValue());
+                        break;
+                    case FLAT:
+                        flatTotal = flatTotal.add(rule.getValue());
+                        break;
+                }
+            }
+
+            BigDecimal percentDiscount = cartTotal.multiply(percentTotal).divide(new BigDecimal("100"));
+            BigDecimal totalDiscount = percentDiscount.add(flatTotal);
+            if (totalDiscount.compareTo(cartTotal) > 0) totalDiscount = cartTotal;
+            BigDecimal payable = cartTotal.subtract(totalDiscount);
+
+            // Update user stats after checkout (simulating order completion)
+            userMonthlyOrderCount.put(userId, userMonthlyOrderCount.getOrDefault(userId, 0) + 1);
+            userMonthlySpend.put(userId, userMonthlySpend.getOrDefault(userId, BigDecimal.ZERO).add(payable));
+
+            System.out.println("[" + userId + "] cart=" + cartTotal + ", freeDelivery=" + freeDelivery + ", discount=" + totalDiscount + ", payable=" + payable);
+        }
+
+        // Upgrade logic
+        MembershipTier tierBeforeUpgrade = subscription.getTier(); // Capture BEFORE upgrade
+        // Auto-upgrade: system automatically finds highest qualifying tier
+        controller.autoUpgradeToHighest(userId).ifPresent(s -> {
+            if (!s.getTier().equals(tierBeforeUpgrade)) {
+                System.out.println("[" + userId + "] AUTO-UPGRADED from " + tierBeforeUpgrade + " to " + s.getTier());
+            } else {
+                System.out.println("[" + userId + "] No auto-upgrade available, remains at " + s.getTier());
+            }
+        });
     }
 }
 

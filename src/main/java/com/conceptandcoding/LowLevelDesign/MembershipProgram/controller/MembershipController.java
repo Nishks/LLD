@@ -30,8 +30,15 @@ public class MembershipController {
     }
 
     // POST /membership/upgrade
+    // targetTier can be null for auto-upgrade to highest qualifying tier
     public Optional<Subscription> upgradeTier(String userId, MembershipTier targetTier) {
         return subscriptionService.upgradeTier(userId, targetTier);
+    }
+
+    // POST /membership/auto-upgrade
+    // Automatically upgrades to highest qualifying tier
+    public Optional<Subscription> autoUpgradeToHighest(String userId) {
+        return subscriptionService.upgradeTier(userId, null);
     }
 
     // POST /membership/downgrade

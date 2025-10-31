@@ -36,7 +36,6 @@ public class SubscriptionService {
         Lock lock = lockForUser(userId);
         lock.lock();
         try {
-            MembershipPlan plan = planService.getPlan(planType);
             LocalDate start = LocalDate.now();
             LocalDate end = start.plusDays(planType.getDurationDays());
 
@@ -63,6 +62,12 @@ public class SubscriptionService {
         return subscriptionRepository.findByUserId(userId);
     }
 
+    /**
+     * Upgrade user tier. If targetTier is null, automatically upgrades to the highest qualifying tier.
+     * @param userId user id
+     * @param targetTier target tier (null for auto-upgrade to highest qualifying tier)
+     * @return updated subscription
+     */
     public Optional<Subscription> upgradeTier(String userId, MembershipTier targetTier) {
         Lock lock = lockForUser(userId);
         lock.lock();
@@ -73,8 +78,24 @@ public class SubscriptionService {
             Subscription sub = existing.get();
             if (sub.getStatus() != SubscriptionStatus.ACTIVE) return Optional.of(sub);
 
-            if (tierEvaluationStrategy.qualifies(userId, targetTier)) {
-                sub.setTier(targetTier);
+            MembershipTier tierToUpgrade;
+            if (targetTier == null) {
+                // Auto-upgrade: find highest qualifying tier
+                tierToUpgrade = getHighestQualifyingTier(userId);
+                if (tierToUpgrade == null) {
+                    return Optional.of(sub); // No upgrade available
+                }
+            } else {
+                // Manual upgrade: check if user qualifies for requested tier
+                if (!tierEvaluationStrategy.qualifies(userId, targetTier)) {
+                    return Optional.of(sub); // Doesn't qualify
+                }
+                tierToUpgrade = targetTier;
+            }
+
+            // Only upgrade if new tier is higher than current
+            if (isTierHigher(tierToUpgrade, sub.getTier())) {
+                sub.setTier(tierToUpgrade);
                 subscriptionRepository.save(sub);
             }
             return Optional.of(sub);
@@ -82,6 +103,40 @@ public class SubscriptionService {
             lock.unlock();
         }
     }
+
+    /**
+     * Find the highest tier the user qualifies for
+     */
+    private MembershipTier getHighestQualifyingTier(String userId) {
+        MembershipTier[] tiers = MembershipTier.values();
+        // Check tiers from highest to lowest (reverse order)
+        for (int i = tiers.length - 1; i >= 0; i--) {
+            MembershipTier tier = tiers[i];
+            if (tierEvaluationStrategy.qualifies(userId, tier)) {
+                return tier; // First match in reverse order is the highest qualifying tier
+            }
+        }
+        return null; // No tier qualifies
+    }
+
+    /**
+     * Check if tier1 is higher than tier2
+     */
+    private boolean isTierHigher(MembershipTier tier1, MembershipTier tier2) {
+        MembershipTier[] tiers = MembershipTier.values();
+        int index1 = -1, index2 = -1;
+        for (int i = 0; i < tiers.length; i++) {
+            if (tiers[i] == tier1) index1 = i;
+            if (tiers[i] == tier2) index2 = i;
+        }
+        return index1 > index2; // Higher index = higher tier (PLATINUM > GOLD > SILVER)
+    }
+
+    /*
+    * Don't understand this use case why would we allow anyone to downgrade ?
+    *
+    *
+    * */
 
     public Optional<Subscription> downgradeTier(String userId, MembershipTier targetTier) {
         Lock lock = lockForUser(userId);
