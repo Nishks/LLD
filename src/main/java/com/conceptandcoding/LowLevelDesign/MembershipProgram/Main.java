@@ -11,6 +11,7 @@ import com.conceptandcoding.LowLevelDesign.MembershipProgram.repository.Subscrip
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.repository.TierConfigRepository;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.service.BenefitService;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.service.PlanService;
+import com.conceptandcoding.LowLevelDesign.MembershipProgram.service.SubscriptionExpiryScheduler;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.service.SubscriptionService;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.strategy.*;
 
@@ -56,6 +57,8 @@ public class Main {
                 .add(new CohortBasedStrategy(userToCohorts, requiredCohortByTier));
 
         SubscriptionService subscriptionService = new SubscriptionService(subscriptionRepository, planService, compositeStrategy);
+        SubscriptionExpiryScheduler expiryScheduler = new SubscriptionExpiryScheduler(subscriptionService);
+        expiryScheduler.start(1, 60);
 
         // Controller (simulated API layer)
         MembershipController controller = new MembershipController(planService, subscriptionService);
@@ -91,6 +94,8 @@ public class Main {
 
         // Cancel userA
         controller.cancel(userA).ifPresent(s -> System.out.println("userA status after cancel: " + s.getStatus()));
+
+        // Note: expiryScheduler is left running for demo; call stop() on shutdown in real app
     }
 }
 

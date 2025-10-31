@@ -2,6 +2,8 @@ package com.conceptandcoding.LowLevelDesign.MembershipProgram.repository;
 
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.model.Subscription;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -15,6 +17,10 @@ public class SubscriptionRepository {
 
     public void save(Subscription subscription) {
         userIdToSubscription.put(subscription.getUserId(), subscription);
+    }
+
+    public Collection<Subscription> findAll() {
+        return new ArrayList<>(userIdToSubscription.values());
     }
 }
 

@@ -60,13 +60,6 @@ public class SubscriptionService {
     }
 
     public Optional<Subscription> getCurrent(String userId) {
-        Optional<Subscription> sub = subscriptionRepository.findByUserId(userId);
-        sub.ifPresent(s -> {
-            if (s.getStatus() == SubscriptionStatus.ACTIVE && LocalDate.now().isAfter(s.getEndDate())) {
-                s.setStatus(SubscriptionStatus.EXPIRED);
-                subscriptionRepository.save(s);
-            }
-        });
         return subscriptionRepository.findByUserId(userId);
     }
 
@@ -119,6 +112,33 @@ public class SubscriptionService {
         } finally {
             lock.unlock();
         }
+    }
+
+    // Sweep task: expire all overdue ACTIVE subscriptions
+    public int expireDueSubscriptions() {
+        int updated = 0;
+        LocalDate today = LocalDate.now();
+        for (Subscription s : subscriptionRepository.findAll()) {
+            if (s.getStatus() == SubscriptionStatus.ACTIVE && today.isAfter(s.getEndDate())) {
+                Lock lock = lockForUser(s.getUserId());
+                lock.lock();
+                try {
+                    // re-check inside lock
+                    Optional<Subscription> current = subscriptionRepository.findByUserId(s.getUserId());
+                    if (current.isPresent()) {
+                        Subscription sub = current.get();
+                        if (sub.getStatus() == SubscriptionStatus.ACTIVE && today.isAfter(sub.getEndDate())) {
+                            sub.setStatus(SubscriptionStatus.EXPIRED);
+                            subscriptionRepository.save(sub);
+                            updated++;
+                        }
+                    }
+                } finally {
+                    lock.unlock();
+                }
+            }
+        }
+        return updated;
     }
 }
 
