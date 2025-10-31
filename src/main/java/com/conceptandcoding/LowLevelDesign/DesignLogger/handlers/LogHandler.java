@@ -1,8 +1,9 @@
-package com.conceptandcoding.LowLevelDesign.DesignLogger.handlers;
+package main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.handlers;
 
-import com.conceptandcoding.LowLevelDesign.DesignLogger.appenders.LogAppender;
-import com.conceptandcoding.LowLevelDesign.DesignLogger.model.LogMessage;
-import org.springframework.boot.logging.LogLevel;
+
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.Enum.LogLevel;
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.appenders.LogAppender;
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.model.LogMessage;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;

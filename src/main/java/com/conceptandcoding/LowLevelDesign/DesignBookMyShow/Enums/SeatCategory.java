@@ -1,4 +1,4 @@
-package com.conceptandcoding.LowLevelDesign.DesignBookMyShow.Enums;
+package main.java.com.conceptandcoding.LowLevelDesign.DesignBookMyShow.Enums;
 
 public enum SeatCategory {
 

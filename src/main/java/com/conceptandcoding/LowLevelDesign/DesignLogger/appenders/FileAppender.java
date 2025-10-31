@@ -1,14 +1,14 @@
-package com.conceptandcoding.LowLevelDesign.DesignLogger.appenders;
+package main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.appenders;
 
-import com.conceptandcoding.LowLevelDesign.DesignLogger.formatter.LogFormatter;
-import com.conceptandcoding.LowLevelDesign.DesignLogger.model.LogMessage;
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.formatter.LogFormatter;
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.model.LogMessage;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 
-public class FileAppender implements LogAppender{
+public class FileAppender implements LogAppender {
     private final LogFormatter formatter;
     private final BufferedWriter writer;
 

@@ -1,8 +1,9 @@
-package com.conceptandcoding.LowLevelDesign.DesignLogger;
+package main.java.com.conceptandcoding.LowLevelDesign.DesignLogger;
 
-import com.conceptandcoding.LowLevelDesign.DesignLogger.handlers.LogHandler;
-import com.conceptandcoding.LowLevelDesign.DesignLogger.model.LogMessage;
-import org.springframework.boot.logging.LogLevel;
+
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.Enum.LogLevel;
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.handlers.LogHandler;
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.model.LogMessage;
 
 public class Logger {
     private static final Logger INSTANCE = new Logger();

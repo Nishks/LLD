@@ -1,11 +1,11 @@
-package com.conceptandcoding.LowLevelDesign.DesignLogger.handlers;
+package main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.handlers;
 
-import org.springframework.boot.logging.LogLevel;
+
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.Enum.LogLevel;
 
 public class DebugHandler extends LogHandler{
 
     protected boolean canHandle(LogLevel level){
         return level == LogLevel.DEBUG;
     }
-
 }

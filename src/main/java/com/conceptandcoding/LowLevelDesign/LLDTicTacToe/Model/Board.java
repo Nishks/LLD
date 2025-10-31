@@ -1,6 +1,7 @@
 package com.conceptandcoding.LowLevelDesign.LLDTicTacToe.Model;
 
-import org.antlr.v4.runtime.misc.Pair;
+
+import com.conceptandcoding.LowLevelDesign.LLDTicTacToe.Pair;
 
 import java.util.ArrayList;
 import java.util.List;

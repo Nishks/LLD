@@ -1,4 +1,4 @@
-package com.conceptandcoding.LowLevelDesign.DesignPatterns.LLDChainResponsibilityDesignPattern;
+package main.java.com.conceptandcoding.LowLevelDesign.DesignPatterns.LLDChainResponsibilityDesignPattern;
 
 public class Main {
 

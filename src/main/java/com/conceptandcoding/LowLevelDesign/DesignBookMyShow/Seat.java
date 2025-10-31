@@ -1,6 +1,7 @@
-package com.conceptandcoding.LowLevelDesign.DesignBookMyShow;
+package main.java.com.conceptandcoding.LowLevelDesign.DesignBookMyShow;
 
-import com.conceptandcoding.LowLevelDesign.DesignBookMyShow.Enums.SeatCategory;
+
+import main.java.com.conceptandcoding.LowLevelDesign.DesignBookMyShow.Enums.SeatCategory;
 
 public class Seat {
 

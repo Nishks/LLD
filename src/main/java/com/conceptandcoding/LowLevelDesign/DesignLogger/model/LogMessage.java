@@ -1,6 +1,7 @@
-package com.conceptandcoding.LowLevelDesign.DesignLogger.model;
+package main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.model;
 
-import org.springframework.boot.logging.LogLevel;
+
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.Enum.LogLevel;
 
 public class LogMessage {
     private String message;

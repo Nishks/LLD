@@ -1,4 +1,4 @@
-package com.conceptandcoding.LowLevelDesign.DesignBookMyShow;
+package main.java.com.conceptandcoding.LowLevelDesign.DesignBookMyShow;
 
 public class Movie {
 

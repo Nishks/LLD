@@ -1,9 +1,9 @@
-package com.conceptandcoding.LowLevelDesign.DesignLogger.appenders;
+package main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.appenders;
 
-import com.conceptandcoding.LowLevelDesign.DesignLogger.formatter.LogFormatter;
-import com.conceptandcoding.LowLevelDesign.DesignLogger.model.LogMessage;
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.formatter.LogFormatter;
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.model.LogMessage;
 
-public class ConsoleAppender implements LogAppender{
+public class ConsoleAppender implements LogAppender {
 
     private final LogFormatter formatter;
 

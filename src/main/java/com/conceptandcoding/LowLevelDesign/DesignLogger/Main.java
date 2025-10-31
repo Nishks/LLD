@@ -1,9 +1,9 @@
-package com.conceptandcoding.LowLevelDesign.DesignLogger;
+package main.java.com.conceptandcoding.LowLevelDesign.DesignLogger;
 
-import com.conceptandcoding.LowLevelDesign.DesignLogger.appenders.ConsoleAppender;
-import com.conceptandcoding.LowLevelDesign.DesignLogger.appenders.FileAppender;
-import com.conceptandcoding.LowLevelDesign.DesignLogger.formatter.PlainTextFormatter;
-import org.springframework.boot.logging.LogLevel;
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.Enum.LogLevel;
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.appenders.ConsoleAppender;
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.appenders.FileAppender;
+import main.java.com.conceptandcoding.LowLevelDesign.DesignLogger.formatter.PlainTextFormatter;
 
 public class Main {
     public static void main(String[] args) {
