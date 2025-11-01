@@ -12,15 +12,15 @@ public class MembershipPlan {
     private final PlanType planType;
     private final MembershipTier tier;
     private final BigDecimal price;
-    private final BenefitConfig benefitConfig;
+    private final TierBenefits tierBenefits; // Only store the specific benefits for this plan
 
-    public MembershipPlan(String id, MembershipType membershipType, PlanType planType, MembershipTier tier, BigDecimal price, BenefitConfig benefitConfig) {
+    public MembershipPlan(String id, MembershipType membershipType, PlanType planType, MembershipTier tier, BigDecimal price, TierBenefits tierBenefits) {
         this.id = id;
         this.membershipType = membershipType;
         this.planType = planType;
         this.tier = tier;
         this.price = price;
-        this.benefitConfig = benefitConfig;
+        this.tierBenefits = tierBenefits;
     }
 
     public String getId() {
@@ -43,8 +43,8 @@ public class MembershipPlan {
         return price;
     }
 
-    public BenefitConfig getBenefitConfig() {
-        return benefitConfig;
+    public TierBenefits getTierBenefits() {
+        return tierBenefits;
     }
 }
 

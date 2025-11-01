@@ -17,12 +17,13 @@ public class BenefitService {
         this.tierConfigRepository = tierConfigRepository;
     }
 
-    // Compute effective TierBenefits for a given plan + membership type + tier
-    public TierBenefits effectiveBenefits(MembershipPlan plan, MembershipType membershipType, MembershipTier tier) {
-        TierBenefits base = plan.getBenefitConfig().getBenefitsForMembershipAndTier(membershipType, tier);
+    // Compute effective TierBenefits for a given plan
+    // Plan already contains its specific TierBenefits, so we just enhance them with tier-level extra discount
+    public TierBenefits effectiveBenefits(MembershipPlan plan) {
+        TierBenefits base = plan.getTierBenefits();
         if (base == null) return null;
 
-        int tierExtraPercent = tierConfigRepository.getExtraDiscountForTier(tier);
+        int tierExtraPercent = tierConfigRepository.getExtraDiscountForTier(plan.getTier());
         if (tierExtraPercent <= 0) return base;
 
         DiscountRule tierExtraRule = new DiscountRule(
@@ -40,28 +41,14 @@ public class BenefitService {
         );
     }
 
-    // Backward compatibility: tier-only lookup
-    public TierBenefits effectiveBenefits(MembershipPlan plan, MembershipTier tier) {
-        // Try STANDARD membership first for backward compatibility
-        TierBenefits result = effectiveBenefits(plan, MembershipType.STANDARD, tier);
-        if (result != null) return result;
-        // Fallback to old method
-        TierBenefits base = plan.getBenefitConfig().getBenefitsForTier(tier);
-        if (base == null) return null;
-        int tierExtraPercent = tierConfigRepository.getExtraDiscountForTier(tier);
-        if (tierExtraPercent <= 0) return base;
-        DiscountRule tierExtraRule = new DiscountRule(
-                DiscountType.PERCENT,
-                new BigDecimal(String.valueOf(tierExtraPercent)),
-                Collections.emptySet(),
-                Collections.emptySet()
-        );
-        return new TierBenefits(
-                base.getTier(),
-                base.getFreeDeliveryRule(),
-                mergeDiscounts(base, tierExtraRule),
-                base.getCouponRules()
-        );
+    // Overloaded method for backward compatibility (if needed)
+    public TierBenefits effectiveBenefits(MembershipPlan plan, MembershipType membershipType, MembershipTier tier) {
+        // Plan already has the correct benefits for its membership type and tier
+        // Just validate they match and return effective benefits
+        if (plan.getMembershipType() != membershipType || plan.getTier() != tier) {
+            return null; // Requested combination doesn't match this plan
+        }
+        return effectiveBenefits(plan);
     }
 
     private java.util.List<DiscountRule> mergeDiscounts(TierBenefits base, DiscountRule extra) {

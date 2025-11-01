@@ -205,7 +205,7 @@ public class Main {
 
         // Effective benefits for current membership type and tier
         MembershipPlan plan = planService.getPlan(subscription.getMembershipType(), subscription.getPlanType(), subscription.getTier());
-        TierBenefits benefits = benefitService.effectiveBenefits(plan, subscription.getMembershipType(), subscription.getTier());
+        TierBenefits benefits = benefitService.effectiveBenefits(plan); // Simplified - plan already knows its benefits
         if (benefits != null) {
             BigDecimal minFreeDelivery = benefits.getFreeDeliveryRule() != null ? benefits.getFreeDeliveryRule().getMinOrderAmount() : BigDecimal.valueOf(Long.MAX_VALUE);
             boolean freeDelivery = cartTotal.compareTo(minFreeDelivery) >= 0;

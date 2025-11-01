@@ -5,6 +5,7 @@ import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.MembershipTyp
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.PlanType;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.model.BenefitConfig;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.model.MembershipPlan;
+import com.conceptandcoding.LowLevelDesign.MembershipProgram.model.TierBenefits;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -27,6 +28,9 @@ public class PlanFactory {
             
             for (MembershipType membershipType : MembershipType.values()) {
                 for (MembershipTier tier : MembershipTier.values()) {
+                    // Extract only the specific TierBenefits for this plan
+                    TierBenefits tierBenefits = benefitConfig.getBenefitsForMembershipAndTier(membershipType, tier);
+                    
                     String planId = generatePlanId(membershipType, planType, tier);
                     BigDecimal price = priceCalculator.calculate(planType, membershipType, tier);
                     
@@ -36,7 +40,7 @@ public class PlanFactory {
                             planType,
                             tier,
                             price,
-                            benefitConfig
+                            tierBenefits // Store only the specific benefits
                     ));
                 }
             }
