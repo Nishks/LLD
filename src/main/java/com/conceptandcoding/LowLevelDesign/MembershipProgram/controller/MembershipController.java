@@ -1,6 +1,7 @@
 package com.conceptandcoding.LowLevelDesign.MembershipProgram.controller;
 
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.MembershipTier;
+import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.MembershipType;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.PlanType;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.model.MembershipPlan;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.model.Subscription;
@@ -24,9 +25,15 @@ public class MembershipController {
         return planService.getAllPlans();
     }
 
-    // POST /membership/subscribe
+    // POST /membership/subscribe (backward compatibility - defaults to STANDARD membership)
     public Subscription subscribe(String userId, PlanType planType, MembershipTier tier) {
         return subscriptionService.subscribe(userId, planType, tier);
+    }
+
+    // POST /membership/subscribe-with-type
+    // User subscribes to a membership type (LOYAL/VIP/STANDARD) with a specific tier
+    public Subscription subscribe(String userId, PlanType planType, MembershipType membershipType, MembershipTier tier) {
+        return subscriptionService.subscribe(userId, planType, membershipType, tier);
     }
 
     // POST /membership/upgrade

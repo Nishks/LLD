@@ -1,6 +1,7 @@
 package com.conceptandcoding.LowLevelDesign.MembershipProgram.model;
 
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.MembershipTier;
+import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.MembershipType;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.PlanType;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.SubscriptionStatus;
 
@@ -11,15 +12,17 @@ public class Subscription {
     private final String id;
     private final String userId;
     private PlanType planType;
+    private MembershipType membershipType;
     private MembershipTier tier;
     private LocalDate startDate;
     private LocalDate endDate;
     private SubscriptionStatus status;
 
-    public Subscription(String id, String userId, PlanType planType, MembershipTier tier, LocalDate startDate, LocalDate endDate, SubscriptionStatus status) {
+    public Subscription(String id, String userId, PlanType planType, MembershipType membershipType, MembershipTier tier, LocalDate startDate, LocalDate endDate, SubscriptionStatus status) {
         this.id = id;
         this.userId = userId;
         this.planType = planType;
+        this.membershipType = membershipType;
         this.tier = tier;
         this.startDate = startDate;
         this.endDate = endDate;
@@ -36,6 +39,10 @@ public class Subscription {
 
     public PlanType getPlanType() {
         return planType;
+    }
+
+    public MembershipType getMembershipType() {
+        return membershipType;
     }
 
     public MembershipTier getTier() {
@@ -56,6 +63,10 @@ public class Subscription {
 
     public void setPlanType(PlanType planType) {
         this.planType = planType;
+    }
+
+    public void setMembershipType(MembershipType membershipType) {
+        this.membershipType = membershipType;
     }
 
     public void setTier(MembershipTier tier) {

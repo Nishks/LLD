@@ -4,27 +4,17 @@ import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.MembershipTie
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.MembershipType;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.PlanType;
 
-import java.math.BigDecimal;
+import java.util.Objects;
 
-public class MembershipPlan {
-    private final String id;
+public class PlanKey {
     private final MembershipType membershipType;
     private final PlanType planType;
     private final MembershipTier tier;
-    private final BigDecimal price;
-    private final BenefitConfig benefitConfig;
 
-    public MembershipPlan(String id, MembershipType membershipType, PlanType planType, MembershipTier tier, BigDecimal price, BenefitConfig benefitConfig) {
-        this.id = id;
+    public PlanKey(MembershipType membershipType, PlanType planType, MembershipTier tier) {
         this.membershipType = membershipType;
         this.planType = planType;
         this.tier = tier;
-        this.price = price;
-        this.benefitConfig = benefitConfig;
-    }
-
-    public String getId() {
-        return id;
     }
 
     public MembershipType getMembershipType() {
@@ -39,13 +29,24 @@ public class MembershipPlan {
         return tier;
     }
 
-    public BigDecimal getPrice() {
-        return price;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PlanKey planKey = (PlanKey) o;
+        return membershipType == planKey.membershipType &&
+                planType == planKey.planType &&
+                tier == planKey.tier;
     }
 
-    public BenefitConfig getBenefitConfig() {
-        return benefitConfig;
+    @Override
+    public int hashCode() {
+        return Objects.hash(membershipType, planType, tier);
+    }
+
+    @Override
+    public String toString() {
+        return membershipType + "_" + planType + "_" + tier;
     }
 }
-
 

@@ -1,6 +1,7 @@
 package com.conceptandcoding.LowLevelDesign.MembershipProgram.service;
 
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.MembershipTier;
+import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.MembershipType;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.PlanType;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.SubscriptionStatus;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.model.MembershipPlan;
@@ -32,7 +33,13 @@ public class SubscriptionService {
         return userLocks.computeIfAbsent(userId, id -> new ReentrantLock());
     }
 
+    // Backward compatibility: subscribe with tier only (defaults to STANDARD membership)
     public Subscription subscribe(String userId, PlanType planType, MembershipTier tier) {
+        return subscribe(userId, planType, MembershipType.STANDARD, tier);
+    }
+
+    // New method: subscribe with membership type and tier
+    public Subscription subscribe(String userId, PlanType planType, MembershipType membershipType, MembershipTier tier) {
         Lock lock = lockForUser(userId);
         lock.lock();
         try {
@@ -44,12 +51,13 @@ public class SubscriptionService {
             if (existing.isPresent() && existing.get().getStatus() == SubscriptionStatus.ACTIVE) {
                 subscription = existing.get();
                 subscription.setPlanType(planType);
+                subscription.setMembershipType(membershipType);
                 subscription.setTier(tier);
                 subscription.setStartDate(start);
                 subscription.setEndDate(end);
                 subscription.setStatus(SubscriptionStatus.ACTIVE);
             } else {
-                subscription = new Subscription(UUID.randomUUID().toString(), userId, planType, tier, start, end, SubscriptionStatus.ACTIVE);
+                subscription = new Subscription(UUID.randomUUID().toString(), userId, planType, membershipType, tier, start, end, SubscriptionStatus.ACTIVE);
             }
             subscriptionRepository.save(subscription);
             return subscription;
@@ -64,6 +72,7 @@ public class SubscriptionService {
 
     /**
      * Upgrade user tier. If targetTier is null, automatically upgrades to the highest qualifying tier.
+     * IMPORTANT: Tier upgrades are only allowed within the same membership type.
      * @param userId user id
      * @param targetTier target tier (null for auto-upgrade to highest qualifying tier)
      * @return updated subscription
@@ -77,11 +86,13 @@ public class SubscriptionService {
 
             Subscription sub = existing.get();
             if (sub.getStatus() != SubscriptionStatus.ACTIVE) return Optional.of(sub);
+            
+            MembershipType currentMembershipType = sub.getMembershipType();
 
             MembershipTier tierToUpgrade;
             if (targetTier == null) {
-                // Auto-upgrade: find highest qualifying tier
-                tierToUpgrade = getHighestQualifyingTier(userId);
+                // Auto-upgrade: find highest qualifying tier within same membership type
+                tierToUpgrade = getHighestQualifyingTier(userId, currentMembershipType);
                 if (tierToUpgrade == null) {
                     return Optional.of(sub); // No upgrade available
                 }
@@ -93,7 +104,7 @@ public class SubscriptionService {
                 tierToUpgrade = targetTier;
             }
 
-            // Only upgrade if new tier is higher than current
+            // Only upgrade if new tier is higher than current (stays within same membership type)
             if (isTierHigher(tierToUpgrade, sub.getTier())) {
                 sub.setTier(tierToUpgrade);
                 subscriptionRepository.save(sub);
@@ -105,9 +116,9 @@ public class SubscriptionService {
     }
 
     /**
-     * Find the highest tier the user qualifies for
+     * Find the highest tier the user qualifies for within the given membership type
      */
-    private MembershipTier getHighestQualifyingTier(String userId) {
+    private MembershipTier getHighestQualifyingTier(String userId, MembershipType membershipType) {
         MembershipTier[] tiers = MembershipTier.values();
         // Check tiers from highest to lowest (reverse order)
         for (int i = tiers.length - 1; i >= 0; i--) {
@@ -138,6 +149,9 @@ public class SubscriptionService {
     *
     * */
 
+    /**
+     * Downgrade user tier. IMPORTANT: Tier downgrades are only allowed within the same membership type.
+     */
     public Optional<Subscription> downgradeTier(String userId, MembershipTier targetTier) {
         Lock lock = lockForUser(userId);
         lock.lock();
@@ -146,6 +160,9 @@ public class SubscriptionService {
             if (existing.isEmpty()) return Optional.empty();
             Subscription sub = existing.get();
             if (sub.getStatus() != SubscriptionStatus.ACTIVE) return Optional.of(sub);
+            
+            // Ensure downgrade stays within same membership type
+            // (targetTier is assumed to be within the same membership type by caller)
             sub.setTier(targetTier);
             subscriptionRepository.save(sub);
             return Optional.of(sub);

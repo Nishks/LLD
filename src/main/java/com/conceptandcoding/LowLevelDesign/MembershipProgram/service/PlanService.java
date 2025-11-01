@@ -1,5 +1,7 @@
 package com.conceptandcoding.LowLevelDesign.MembershipProgram.service;
 
+import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.MembershipTier;
+import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.MembershipType;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.PlanType;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.model.MembershipPlan;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.repository.PlanRepository;
@@ -17,8 +19,13 @@ public class PlanService {
         return planRepository.getAllPlans();
     }
 
-    public MembershipPlan getPlan(PlanType type) {
-        return planRepository.getByType(type);
+    public MembershipPlan getPlan(MembershipType membershipType, PlanType planType, MembershipTier tier) {
+        return planRepository.getByKey(membershipType, planType, tier);
+    }
+
+    // Backward compatibility: get all plans for a plan type
+    public List<MembershipPlan> getPlansByType(PlanType planType) {
+        return planRepository.getByPlanType(planType);
     }
 }
 

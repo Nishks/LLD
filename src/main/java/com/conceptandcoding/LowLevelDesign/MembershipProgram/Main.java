@@ -1,6 +1,7 @@
 package com.conceptandcoding.LowLevelDesign.MembershipProgram;
 
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.MembershipTier;
+import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.MembershipType;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.Enums.PlanType;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.controller.MembershipController;
 import com.conceptandcoding.LowLevelDesign.MembershipProgram.model.MembershipPlan;
@@ -24,23 +25,23 @@ public class Main {
         // Mock data sources for strategies
         Map<String, Integer> userMonthlyOrderCount = new HashMap<>();
         Map<String, BigDecimal> userMonthlySpend = new HashMap<>();
-        Map<String, Set<String>> userToCohorts = new HashMap<>();
-        Map<MembershipTier, String> requiredCohortByTier = new EnumMap<>(MembershipTier.class);
 
-        // Example thresholds: cohort "VIP" grants Platinum, "LOYAL" grants Gold
-        requiredCohortByTier.put(MembershipTier.GOLD, "LOYAL");
-        requiredCohortByTier.put(MembershipTier.PLATINUM, "VIP");
+
+
+//         Do not have clarity what the COHORT is and how it is different from membership
+//          Map<String, Set<String>> userToCohorts = new HashMap<>();
+//        Map<MembershipTier, String> requiredCohortByTier = new EnumMap<>(MembershipTier.class);
 
         // Seed some users
         String userA = "userA";
         userMonthlyOrderCount.put(userA, 6);
         userMonthlySpend.put(userA, new BigDecimal("6200"));
-        userToCohorts.put(userA, new HashSet<>(Arrays.asList("LOYAL")));
+//        userToCohorts.put(userA, new HashSet<>(Arrays.asList("LOYAL")));
 
         String userB = "userB";
         userMonthlyOrderCount.put(userB, 12);
         userMonthlySpend.put(userB, new BigDecimal("12000"));
-        userToCohorts.put(userB, new HashSet<>(Arrays.asList("VIP", "LOYAL")));
+//        userToCohorts.put(userB, new HashSet<>(Arrays.asList("VIP", "LOYAL")));
 
         // Wire repositories
         PlanRepository planRepository = new PlanRepository();
@@ -54,8 +55,8 @@ public class Main {
         // Configure strategies
         TierEvaluationStrategy compositeStrategy = new CompositeTierEvaluationStrategy()
                 .add(new OrderCountBasedStrategy(userMonthlyOrderCount))
-                .add(new MonthlySpendBasedStrategy(userMonthlySpend))
-                .add(new CohortBasedStrategy(userToCohorts, requiredCohortByTier));
+                .add(new MonthlySpendBasedStrategy(userMonthlySpend));
+//                .add(new CohortBasedStrategy(userToCohorts, requiredCohortByTier));
 
         SubscriptionService subscriptionService = new SubscriptionService(subscriptionRepository, planService, compositeStrategy);
         SubscriptionExpiryScheduler expiryScheduler = new SubscriptionExpiryScheduler(subscriptionService);
@@ -64,54 +65,102 @@ public class Main {
         // Controller (simulated API layer)
         MembershipController controller = new MembershipController(planService, subscriptionService);
 
-        // Show available plans once
-        System.out.println("Available Plans:");
-        for (MembershipPlan plan : controller.getPlans()) {
-            System.out.println("- " + plan.getPlanType() + " | Price: " + plan.getPrice());
+        // Show available plans in organized format
+        System.out.println("\n========== AVAILABLE MEMBERSHIP PLANS ==========\n");
+        List<MembershipPlan> allPlans = controller.getPlans();
+        
+        // Group plans by membership type, then tier, then plan type
+        Map<MembershipType, Map<MembershipTier, Map<PlanType, MembershipPlan>>> organizedPlans = new LinkedHashMap<>();
+        
+        for (MembershipPlan plan : allPlans) {
+            organizedPlans
+                .computeIfAbsent(plan.getMembershipType(), k -> new LinkedHashMap<>())
+                .computeIfAbsent(plan.getTier(), k -> new LinkedHashMap<>())
+                .put(plan.getPlanType(), plan);
         }
+        
+        // Display in order: VIP -> LOYAL -> STANDARD
+        MembershipType[] membershipTypeOrder = {MembershipType.VIP, MembershipType.LOYAL, MembershipType.STANDARD};
+        MembershipTier[] tierOrder = {MembershipTier.SILVER, MembershipTier.GOLD, MembershipTier.PLATINUM};
+        PlanType[] planTypeOrder = {PlanType.MONTHLY, PlanType.QUARTERLY, PlanType.YEARLY};
+        
+        for (MembershipType memType : membershipTypeOrder) {
+            if (!organizedPlans.containsKey(memType)) continue;
+            
+            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            System.out.println("  " + memType + " MEMBERSHIP");
+            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+            
+            Map<MembershipTier, Map<PlanType, MembershipPlan>> tiers = organizedPlans.get(memType);
+            
+            for (MembershipTier tier : tierOrder) {
+                if (!tiers.containsKey(tier)) continue;
+                
+                System.out.println("  ┌─ " + tier + " Tier");
+                
+                Map<PlanType, MembershipPlan> plans = tiers.get(tier);
+                
+                for (PlanType planType : planTypeOrder) {
+                    if (!plans.containsKey(planType)) continue;
+                    
+                    MembershipPlan plan = plans.get(planType);
+                    System.out.println("  │   • " + String.format("%-10s", planType) + " → ₹" + plan.getPrice());
+                }
+                
+                System.out.println();
+            }
+            System.out.println();
+        }
+        
+        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        System.out.println("Total Plans Available: " + allPlans.size());
+        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
         // Add third userC
         String userC = "userC";
         userMonthlyOrderCount.put(userC, 1);
         userMonthlySpend.put(userC, new BigDecimal("500"));
-        userToCohorts.put(userC, new HashSet<>());
+//        userToCohorts.put(userC, new HashSet<>());
 
         // Simulate concurrent flows for A, B, C
         ExecutorService exec = Executors.newFixedThreadPool(3);
 
-        // UserA: Manual upgrade to GOLD after checkout
+        // UserA: Subscribe to LOYAL membership with SILVER tier, then auto-upgrade within LOYAL
         Runnable flowA = () -> simulateUserFlow(
                 controller,
                 benefitService,
                 planService,
                 userA,
                 PlanType.MONTHLY,
+                MembershipType.LOYAL,
                 MembershipTier.SILVER,
                 new BigDecimal("1200"),
                 userMonthlyOrderCount,
                 userMonthlySpend
         );
 
-        // UserB: Auto-upgrade to highest qualifying tier (could jump to PLATINUM directly)
+        // UserB: Subscribe to VIP membership with GOLD tier, then auto-upgrade within VIP
         Runnable flowB = () -> simulateUserFlow(
                 controller,
                 benefitService,
                 planService,
                 userB,
                 PlanType.YEARLY,
+                MembershipType.VIP,
                 MembershipTier.GOLD,
                 new BigDecimal("450"),
                 userMonthlyOrderCount,
                 userMonthlySpend
         );
 
-        // UserC: Auto-upgrade after checkout (might qualify for GOLD or stay SILVER)
+        // UserC: Subscribe to STANDARD membership with SILVER tier, then auto-upgrade within STANDARD
         Runnable flowC = () -> simulateUserFlow(
                 controller,
                 benefitService,
                 planService,
                 userC,
                 PlanType.QUARTERLY,
+                MembershipType.STANDARD,
                 MembershipTier.SILVER,
                 new BigDecimal("800"),
                 userMonthlyOrderCount,
@@ -144,17 +193,19 @@ public class Main {
             PlanService planService,
             String userId,
             PlanType planType,
+            MembershipType membershipType,
             MembershipTier tier,
             BigDecimal cartTotal,
             Map<String, Integer> userMonthlyOrderCount,
             Map<String, BigDecimal> userMonthlySpend
     ) {
-        // Subscribe
-        Subscription subscription = controller.subscribe(userId, planType, tier);
-        System.out.println("[" + userId + "] subscribed: " + subscription.getPlanType() + " - " + subscription.getTier());
+        // Subscribe with membership type and tier
+        Subscription subscription = controller.subscribe(userId, planType, membershipType, tier);
+        System.out.println("[" + userId + "] subscribed: " + subscription.getPlanType() + " | " + subscription.getMembershipType() + " | " + subscription.getTier());
 
-        // Effective benefits for current tier
-        TierBenefits benefits = benefitService.effectiveBenefits(planService.getPlan(planType), subscription.getTier());
+        // Effective benefits for current membership type and tier
+        MembershipPlan plan = planService.getPlan(subscription.getMembershipType(), subscription.getPlanType(), subscription.getTier());
+        TierBenefits benefits = benefitService.effectiveBenefits(plan, subscription.getMembershipType(), subscription.getTier());
         if (benefits != null) {
             BigDecimal minFreeDelivery = benefits.getFreeDeliveryRule() != null ? benefits.getFreeDeliveryRule().getMinOrderAmount() : BigDecimal.valueOf(Long.MAX_VALUE);
             boolean freeDelivery = cartTotal.compareTo(minFreeDelivery) >= 0;
@@ -184,14 +235,15 @@ public class Main {
             System.out.println("[" + userId + "] cart=" + cartTotal + ", freeDelivery=" + freeDelivery + ", discount=" + totalDiscount + ", payable=" + payable);
         }
 
-        // Upgrade logic
+        // Upgrade logic - upgrades only within same membership type
         MembershipTier tierBeforeUpgrade = subscription.getTier(); // Capture BEFORE upgrade
-        // Auto-upgrade: system automatically finds highest qualifying tier
+        MembershipType membershipTypeBefore = subscription.getMembershipType();
+        // Auto-upgrade: system automatically finds highest qualifying tier within same membership type
         controller.autoUpgradeToHighest(userId).ifPresent(s -> {
             if (!s.getTier().equals(tierBeforeUpgrade)) {
-                System.out.println("[" + userId + "] AUTO-UPGRADED from " + tierBeforeUpgrade + " to " + s.getTier());
+                System.out.println("[" + userId + "] AUTO-UPGRADED within " + membershipTypeBefore + " membership: " + tierBeforeUpgrade + " -> " + s.getTier());
             } else {
-                System.out.println("[" + userId + "] No auto-upgrade available, remains at " + s.getTier());
+                System.out.println("[" + userId + "] No auto-upgrade available, remains at " + membershipTypeBefore + " " + s.getTier());
             }
         });
     }
